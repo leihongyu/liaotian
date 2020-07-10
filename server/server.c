@@ -14,6 +14,8 @@ struct Score score;
 int repollfd, bepollfd;
 struct User *rteam, *bteam;
 int port = 0;
+pthread_mutex_t rmutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t bumtex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char **argv) {
     int opt, listener, epollfd;
