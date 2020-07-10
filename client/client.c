@@ -72,24 +72,27 @@ int main(int argc, char **argv) {
     }
 
     sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&server, len);
-    fd_set rfds;
-    FD_ZERO(&rfds);
-    FD_SET(sockfd, &rfds);
-    int rc, ret;
+    fd_set set;
+    FD_ZERO(&set);
+    FD_SET(sockfd, &set);
+
     struct timeval tv;
     tv.tv_sec = 5;
     tv.tv_usec = 0;
-    rc = select(sockfd + 1, &rfds, NULL, NULL, &tv);
-    if(rc == 0){
-        return -1;                                
+    
+    int retval = select(sockfd + 1, &set, NULL, NULL, &tv);
+    if(retval < 0) {
+        exit(1);                                
+    } else if (retval) {
+        int ret = recvfrom(sockfd, (void *)&response, sizeof(response), 0, (struct sockaddr *)&server, &len);
+        if(ret != sizeof(response) || response.type == 1) {
+            perror("server refused!\n"); 
+	    exit(1);
+        }                                
     } else {
-        ret = recvfrom(sockfd, (void *)&response, sizeof(response), 0, (struct sockaddr *)&server, &len);
-        if(ret < 0||response.type == 1){
-            perror("server refused!\n");                                    
-        }
-        printf("%s\n", response.msg);                                
+        exit(1);
     }
-    if(connect(sockfd, (struct sockaddr*)&server, sizeof(server)) == -1){
+    if(connect(sockfd, (struct sockaddr*)&server, sizeof(server), len) == -1){
         perror("connecting failed!\n");
         exit(1);                                    
     }
@@ -102,7 +105,6 @@ int main(int argc, char **argv) {
     signal(SIGINT,logout);
     while(1) {
         struct ChatMsg msg;
-        bzero(&msg, sizeof(msg));
         msg.type = CHAT_WALL;
         printf(RED"Please Input:\n"NONE);
         scanf("%[^\n]s",msg.msg);
