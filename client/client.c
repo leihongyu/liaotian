@@ -102,6 +102,7 @@ int main(int argc, char **argv) {
     signal(SIGINT,logout);
     while(1) {
         struct ChatMsg msg;
+        bzero(&msg, sizeof(msg));
         msg.type = CHAT_WALL;
         printf(RED"Please Input:\n"NONE);
         scanf("%[^\n]s",msg.msg);
