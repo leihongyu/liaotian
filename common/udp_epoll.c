@@ -7,6 +7,19 @@
 
 #include "head.h"
 extern int port;
+extern int repollfd,bepollfd;
+struct User *rteam,*bteam;
+
+void add_event_ptr(int epollfd, int fd, int event, struct User *user) {
+    struct epoll_event ev;
+    ev.data.ptr = user;
+    ev.events = event;
+    epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev);
+}
+
+void del_event(int epollfd, int fd) {
+    epoll_ctl(epollfd, EPOLL_CTL_DEL, fd,NULL);
+}
 
 int udp_connect(struct sockaddr_in *client) {
     int sockfd;
@@ -18,6 +31,14 @@ int udp_connect(struct sockaddr_in *client) {
         return -1;
     }
     return sockfd;
+}
+
+int cheak_online(struct LogRequest *request) {
+    for (int i = 0; i < MAX; i++) {
+        if (rteam[i].online && !strcmp(request->name ,rteam[i].name)) return 1;
+        if (bteam[i].online && !strcmp(request->name ,bteam[i].name)) return 1;
+    }
+    return 0;
 }
 
 
@@ -39,7 +60,7 @@ int udp_accept(int fd, struct User *user) {
         return -1;
     }
     
-   /* if (check_online(&request)) {
+    /*if (check_online(&request)) {
         response.type = 1;
         strcpy(response.msg, "You are Already Login!");
         sendto(fd, (void *)&response, sizeof(response), 0, (struct sockaddr *)&client, len);
@@ -61,4 +82,28 @@ int udp_accept(int fd, struct User *user) {
     new_fd = udp_connect(&client);
     user->fd = new_fd;
     return new_fd;
+}
+
+int find_sub(struct User *team) {
+    for (int i = 0; i < MAX; i++) {
+        if(!team[i].online) return i;
+    }
+    return -1;
+}
+
+void add_to_sub_reactor(struct User *user) {
+    struct User *team = (user -> team ? bteam : rteam);
+    int sub = find_sub(team);
+    if (sub < 0) {
+        fprintf(stderr, "Full Team!\n");
+        return ;
+    }
+    team[sub] = *user;
+    team[sub].online = 1;
+    team[sub].flag = 10;
+    DBG(L_RED"sub = %d, name = %s\n",sub, team[sub].name);
+    if(user->team)
+        add_event_ptr(bepollfd, team[sub].fd,EPOLLIN | EPOLLET, &team[sub]);
+    else
+        add_event_ptr(repollfd, team[sub].fd,EPOLLIN | EPOLLET, &team[sub]);
 }

@@ -1,26 +1,27 @@
 /*************************************************************************
 	> File Name: client.c
-	> Author: suyelu 
-	> Mail: suyelu@126.com
-	> Created Time: Wed 08 Jul 2020 04:32:12 PM CST
+	> Author: 
+	> Mail: 
+	> Created Time: Fri 10 Jul 2020 08:49:59 AM CST
  ************************************************************************/
 
 #include "head.h"
 
 int server_port = 0;
 char server_ip[20] = {0};
-int team = -1;
-char name[20] = {0};
-char log_msg[512] = {0};
 char *conf = "./football.conf";
 int sockfd = -1;
 
 int main(int argc, char **argv) {
     int opt;
+    struct LogRequest request;
+    struct LogResponse response;
+    bzero(&request, sizeof(request));
+    bzero(&response, sizeof(response));
     while ((opt = getopt(argc, argv, "h:p:t:m:n:")) != -1) {
         switch (opt) {
             case 't':
-                team = atoi(optarg);
+                request.team = atoi(optarg);
                 break;
             case 'h':
                 strcpy(server_ip, optarg);
@@ -29,41 +30,74 @@ int main(int argc, char **argv) {
                 server_port = atoi(optarg);
                 break;
             case 'm':
-                strcpy(log_msg, optarg);
+                strcpy(request.msg, optarg);
                 break;
             case 'n':
-                strcpy(name, optarg);
+                strcpy(request.name, optarg);
                 break;
             default:
                 fprintf(stderr, "Usage : %s [-hptmn]!\n", argv[0]);
-                exit(1);
+                exit(1);                
         }
     }
-    
+
 
     if (!server_port) server_port = atoi(get_conf_value(conf, "SERVERPORT"));
-    if (!team) team = atoi(get_conf_value(conf, "TEAM"));
+    if (!request.team) request.team = atoi(get_conf_value(conf, "TEAM"));
     if (!strlen(server_ip)) strcpy(server_ip, get_conf_value(conf, "SERVERIP"));
-    if (!strlen(name)) strcpy(name, get_conf_value(conf, "NAME"));
-    if (!strlen(log_msg)) strcpy(log_msg, get_conf_value(conf, "LOGMSG"));
+    if (!strlen(request.name)) strcpy(request.name, get_conf_value(conf, "NAME"));
+    if (!strlen(request.msg)) strcpy(request.msg, get_conf_value(conf, "LOGMSG"));
 
 
-    DBG("<"GREEN"Conf Show"NONE"> : server_ip = %s, port = %d, team = %s, name = %s\n%s",\
-        server_ip, server_port, team ? "BLUE": "RED", name, log_msg);
+    DBG("<"GREEN"Conf Show"NONE"> : server_ip = %s, port = %d, team = %s, name = %s\n%s", server_ip, server_port, request.team ? "BLUE": "RED", request.name, request.msg);
 
     struct sockaddr_in server;
     server.sin_family = AF_INET;
     server.sin_port = htons(server_port);
     server.sin_addr.s_addr = inet_addr(server_ip);
-
     socklen_t len = sizeof(server);
-
     if ((sockfd = socket_udp()) < 0) {
         perror("socket_udp()");
         exit(1);
+            
     }
-    
-    sendto(sockfd, log_msg, strlen(log_msg), 0, (struct sockaddr *)&server, len);
 
+    sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&server, len);
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(sockfd, &rfds);
+    int rc, ret;
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+    rc = select(sockfd + 1, &rfds, NULL, NULL, &tv);
+    if(rc == 0){
+        return -1;                                
+    } else {
+        ret = recvfrom(sockfd, (void *)&response, sizeof(response), 0, (struct sockaddr *)&server, &len);
+        if(ret < 0||response.type == 1){
+            perror("server refused!\n");                                    
+        }
+        printf("%s\n", response.msg);                                
+    }
+    if(connect(sockfd, (struct sockaddr*)&server, sizeof(server)) == -1){
+        perror("connecting failed!\n");
+        exit(1);                                    
+    }
+    //char buff[512] = {0};
+    //sprintf(buff, "hello , good night!");
+    //send(sockfd, buff, strlen(buff), 0);
+    //bzero(buff, sizeof(buff));
+    //recv(sockfd, buff, sizeof(buff), 0)
+    //DBG(RED"Server Info"NONE" : %s\n", buff);
+    while(1) {
+        struct ChatMsg msg;
+        msg.type = CHAT_WALL;
+        printf(RED"Please Input:\n"NONE);
+        scanf("%[^\n]s",msg.msg);
+        getchar();
+        send(sockfd, (void *)&msg, sizeof(msg), 0);
+    }
     return 0;
 }
+

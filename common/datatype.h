@@ -95,7 +95,16 @@ struct FootBallMsg{
     char msg[MAX_MSG];
     struct Ctl ctl;
 };
+#define CHAT_FIN 0x01 //断开
+#define CHAT_HEART 0x02
+#define CHAT_ACK 0x04
+#define CHAT_WALL 0x08 //公聊
+#define CHAT_MAG 0x10 //私聊
 
+struct ChatMsg {
+    int type;
+    char msg[1024];
+};
 
 struct Map{
     int width;
