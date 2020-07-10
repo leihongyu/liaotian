@@ -73,28 +73,31 @@ int main(int argc, char **argv) {
         exit(1);
     }
     
-    sendto(sockfd,&request, sizeof(request), 0, (struct sockaddr *)&server, len);
-    //
+    sendto(sockfd, &request, sizeof(request), 0, (struct sockaddr *)&server, len);
     fd_set set;
     FD_ZERO(&set);
     FD_SET(sockfd, &set);
+
     struct timeval tv;
     tv.tv_sec = 5;
     tv.tv_usec = 0;
-
+    
     int retval = select(sockfd + 1, &set, NULL, NULL, &tv);
-    if (retval < 0) {
-        perror("select()");
-        exit(1);
+    if(retval < 0) {
+        exit(1);                                
     } else if (retval) {
-        int ret = recvfrom(sockfd, (void*)&response, sizeof(response), 0, (struct sockaddr*)&server, &len);
-        if (ret != sizeof(response) || response.type == 1) {
-            DBG(RED"Error"NONE"The Game Server refused your login.\n\tThis May be helpful: %s\n", response.msg);
-            exit(1);
-        }
+        int ret = recvfrom(sockfd, (void *)&response, sizeof(response), 0, (struct sockaddr *)&server, &len);
+        if(ret != sizeof(response) || response.type == 1) {
+            perror("server refused!\n"); 
+	    exit(1);
+        }                                
     } else {
-        DBG(RED"Error"NONE"Server is out of service!\n");
         exit(1);
+    }
+    if(connect(sockfd, (struct sockaddr*)&server, len) == -1){
+        perror("connecting failed!\n");
+        exit(1);                                    
+
     }
 
     DBG(GREEN"Server"NONE" : %s\n", response.msg);
@@ -117,55 +120,5 @@ int main(int argc, char **argv) {
         send(sockfd, (void*)&msg, sizeof(msg), 0);
     }
 
-
-/*
-    //HOMEWORK FOLLOWING
-    fd_set rfds;
-    FD_ZERO(&rfds);
-    FD_SET(sockfd, &rfds);
-    int retval;
-
-    struct timeval tv;
-    tv.tv_sec = 5;
-    tv.tv_usec = 0;
-
-    if ((retval = select(sockfd + 1, &rfds, NULL, NULL, &tv)) <=  0) {
-        perror("select()");
-        exit(1);
-    }
-
-    while(1) {
-        char buff[MAX_MSG] = {0};
-        int ret = recvfrom(sockfd, response, sizeof(response), 0, (struct sockaddr*)&server, &len);
-        //判断response是否合法，以及type是否为1
-
-        if (ret < 0) {
-           // close(sockfd);
-            DBG(RED"recv failed\n"NONE);
-            exit(1);
-        } else if (response.type == 1) {
-           // close(sockfd);
-            DBG(RED"offline\n"NONE);
-            exit(1);
-        } 
-        
-    }
- 
-    DBG(GREEN"After recvfrom\n"NONE);
-
-    if (connect(sockfd, (struct sockaddr*)&server, len) < 0) {
-        perror("connect()");
-        exit(1);
-    }
-    
-    
-    char buff[] = {"Hello"};
-    sendto(sockfd, (void*)buff, strlen(buff), 0, (struct sockaddr*)&server,len);
-    DBG(GREEN"After send to\n");
-    //接受成绩
-    while (recvfrom(sockfd, response, sizeof(response), 0, (struct sockaddr*)&server, &len) < 0) {
-        DBG(RED"Server Info"NONE" : %s\n", response.msg);
-    }
-*/
     return 0;
 }
