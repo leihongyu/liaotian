@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
     } else {
         exit(1);
     }
-    if(connect(sockfd, (struct sockaddr*)&server, sizeof(server), len) == -1){
+    if(connect(sockfd, (struct sockaddr*)&server, len) == -1){
         perror("connecting failed!\n");
         exit(1);                                    
     }
