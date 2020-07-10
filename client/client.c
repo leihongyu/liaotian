@@ -12,6 +12,15 @@ char server_ip[20] = {0};
 char *conf = "./football.conf";
 int sockfd = -1;
 
+void logout(int sigum) {
+    struct ChatMsg msg;
+    msg.type = CHAT_FIN;
+    send(sockfd, (void *)&msg, sizeof(msg), 0);
+    close(sockfd);
+    DBG(RED"Bye!\n"NONE);
+    exit(0);
+}
+
 int main(int argc, char **argv) {
     int opt;
     struct LogRequest request;
@@ -90,6 +99,7 @@ int main(int argc, char **argv) {
     //bzero(buff, sizeof(buff));
     //recv(sockfd, buff, sizeof(buff), 0)
     //DBG(RED"Server Info"NONE" : %s\n", buff);
+    signal(SIGINT,logout);
     while(1) {
         struct ChatMsg msg;
         msg.type = CHAT_WALL;

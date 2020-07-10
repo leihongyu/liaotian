@@ -18,6 +18,7 @@ void do_work(struct User *user) {
         user->online = 0;
         int epollfd = user->team ? bepollfd :repollfd;
         del_event(epollfd, user->fd);
+        printf(GREEN"Server Info"NONE"%s");
         close(user->fd);
     }
 }
