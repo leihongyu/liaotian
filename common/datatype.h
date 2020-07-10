@@ -99,7 +99,7 @@ struct FootBallMsg{
 #define CHAT_HEART 0x02
 #define CHAT_ACK 0x04
 #define CHAT_WALL 0x08 //公聊
-#define CHAT_MAG 0x10 //私聊
+#define CHAT_MSG 0x10 //私聊
 
 struct ChatMsg {
     int type;
