@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
     //recv(sockfd, buff, sizeof(buff), 0)
     //DBG(RED"Server Info"NONE" : %s\n", buff);
     signal(SIGINT,logout);
+    send(sockfd ,(void *)&request.msg, sizeof(request.msg),0);
     while(1) {
         struct ChatMsg msg;
         msg.type = CHAT_WALL;
